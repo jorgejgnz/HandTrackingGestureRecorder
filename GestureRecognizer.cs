@@ -37,7 +37,7 @@ public class GestureRecognizer : MonoBehaviour
     [SerializeField]
     public List<Gesture> savedGestures = new List<Gesture>();
 
-    public float theresold = 0.1f;
+    public float theresold = 1.0f;
 
     public UnityEvent onNothindDetected;
 
