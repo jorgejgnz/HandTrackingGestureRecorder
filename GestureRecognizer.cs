@@ -15,7 +15,8 @@ public struct Gesture
     public List<Vector3> positionsPerFinger; // Relative to hand
     public UnityEvent onRecognized;
 
-    public Gesture(string name, List<Vector3> positions, UnityEvent onRecognized) {
+    public Gesture(string name, List<Vector3> positions, UnityEvent onRecognized)
+    {
         this.gestureName = name;
         this.positionsPerFinger = positions;
         this.onRecognized = onRecognized;
@@ -42,8 +43,8 @@ public class GestureRecognizer : MonoBehaviour
 
     [HideInInspector]
     public Gesture gestureDetected;
-    bool sthWasDetected = false;
-    
+    bool sthWasDetected;
+
     [Header("Objects")]
     public GameObject hand;
     public GameObject[] fingers;
@@ -58,7 +59,8 @@ public class GestureRecognizer : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        
+        sthWasDetected = false;
+        onNothindDetected.Invoke();
     }
 
     // Update is called once per frame
@@ -72,7 +74,8 @@ public class GestureRecognizer : MonoBehaviour
         {
             sthWasDetected = false;
             onNothindDetected.Invoke();
-        }else if (!gestureDetected.Equals(new Gesture()) && !sthWasDetected)
+        }
+        else if (!gestureDetected.Equals(new Gesture()) && !sthWasDetected)
         {
             sthWasDetected = true;
             gestureDetected.onRecognized.Invoke();
@@ -89,7 +92,7 @@ public class GestureRecognizer : MonoBehaviour
         List<Vector3> positions = new List<Vector3>();
         for (int i = 0; i < fingers.Length; i++)
         {
-            fingerRelativePos = fingers[i].transform.position - hand.transform.position;
+            fingerRelativePos = hand.transform.InverseTransformPoint(fingers[i].transform.position);
             positions.Add(fingerRelativePos);
         }
 
@@ -118,7 +121,7 @@ public class GestureRecognizer : MonoBehaviour
             // For each finger
             for (int j = 0; j < fingers.Length; j++)
             {
-                fingerRelativePos = fingers[j].transform.position - hand.transform.position;
+                fingerRelativePos = hand.transform.InverseTransformPoint(fingers[j].transform.position);
 
                 // If at least one finger does not enter the theresold we discard the gesture
                 if (Vector3.Distance(fingerRelativePos, savedGestures[i].positionsPerFinger[j]) > theresold)
@@ -151,6 +154,17 @@ public class GestureRecognizer : MonoBehaviour
         return bestCandidate;
     }
 
+    Vector3 RotatePointAroundPivot(Vector3 point, Vector3 pivot, Vector3 angles) {
+
+       Vector3 dir = point - pivot; // get point direction relative to pivot
+
+       dir = Quaternion.Euler(angles) * dir; // rotate it
+
+       point = dir + pivot; // calculate rotated point
+
+       return point; // return it
+     }
+
 }
 
 #if UNITY_EDITOR
@@ -160,7 +174,7 @@ public class CustomInspector_GestureRecognizer : Editor
 
     private void OnEnable()
     {
-        
+
     }
 
     public override void OnInspectorGUI()
@@ -174,7 +188,7 @@ public class CustomInspector_GestureRecognizer : Editor
             OnInspectorGUI();
         }
 
-        
+
 
     }
 }
