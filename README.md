@@ -2,9 +2,7 @@
 
 Unity utility to help devs to record hand tracking gestures easier
 
-![Basic desired behaviour](https://gfycat.com/finedependentgossamerwingedbutterfly)
-
-![Recording hand tracking gestures](https://gfycat.com/forsakenslimyguineapig)
+![Recording hand tracking gestures](https://gfycat.com/spiffyemptyhalibut)
 
 ## Getting Started
 
