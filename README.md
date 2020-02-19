@@ -1,4 +1,4 @@
-# Industrial Tech Demo (Oculus Quest)
+# Hand Tracking Gesture Recorder (Oculus Quest)
 
 Unity utility to help devs to record hand tracking gestures easier
 
