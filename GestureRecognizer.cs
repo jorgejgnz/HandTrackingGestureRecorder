@@ -31,7 +31,6 @@ public struct Gesture
 
 }
 
-[InitializeOnLoadAttribute]
 public class GestureRecognizer : MonoBehaviour
 {
     [SerializeField]
@@ -75,7 +74,7 @@ public class GestureRecognizer : MonoBehaviour
             sthWasDetected = false;
             onNothindDetected.Invoke();
         }
-        else if (!gestureDetected.Equals(new Gesture()) && !sthWasDetected)
+        else if (!gestureDetected.Equals(new Gesture()))
         {
             sthWasDetected = true;
             gestureDetected.onRecognized.Invoke();
