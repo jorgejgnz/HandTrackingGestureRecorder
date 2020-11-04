@@ -141,7 +141,6 @@ public class CustomInspectorGestureRecognizer : Editor
         var gestureRecognizer = (GestureRecognizer) target;
         if (!GUILayout.Button("Save current gesture")) return;
         gestureRecognizer.SaveAsGesture();
-        base.OnInspectorGUI();
     }
 }
 #endif
