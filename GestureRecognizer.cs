@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -8,11 +8,14 @@ using UnityEditor;
 #endif
 
 [Serializable]
-public struct Gesture
+public class Gesture
 {
     public string gestureName;
     public List<Vector3> positionsPerFinger; // Relative to hand
     public UnityEvent onRecognized;
+
+    [HideInInspector]
+    public float time = 0.0f;
 
     public Gesture(string name, List<Vector3> positions, UnityEvent onRecognized)
     {
@@ -34,80 +37,75 @@ public class GestureRecognizer : MonoBehaviour
 {
     [Header("Behaviour")]
     [SerializeField] private List<Gesture> savedGestures = new List<Gesture>();
-    [SerializeField] private float threshold = 1.0f;
+    [SerializeField] private float threshold = 0.05f;
+    [SerializeField] private float delay = 0.2f;
     [SerializeField] private UnityEvent onNothingDetected = default;
 
-    [Header("Objects")] 
+    [Header("Objects")]
     [SerializeField] private GameObject hand = default;
     [SerializeField] private GameObject[] fingers = default;
 
-    [Header("Debugging")] 
-    [SerializeField] private string gestureNameDetected = default;
+    [Header("Debugging")]
     [SerializeField] private Gesture gestureDetected = default;
-    [SerializeField] private string gestureName = default;
 
-    private bool _sthWasDetected;
+    private Gesture _previousGestureDetected = null;
 
     private void Start()
     {
-        _sthWasDetected = false;
         onNothingDetected.Invoke();
     }
 
     private void Update()
     {
         gestureDetected = Recognize();
-        gestureNameDetected = gestureDetected.gestureName;
+        
+        if (gestureDetected != _previousGestureDetected)
+        {
+            if (gestureDetected != null)
+                gestureDetected.onRecognized.Invoke();
+            else
+                onNothingDetected.Invoke();
 
-        if (gestureDetected.Equals(new Gesture()) && _sthWasDetected)
-        {
-            _sthWasDetected = false;
-            onNothingDetected.Invoke();
-        }
-        else if (!gestureDetected.Equals(new Gesture()))
-        {
-            _sthWasDetected = true;
-            gestureDetected.onRecognized.Invoke();
+            _previousGestureDetected = gestureDetected;
         }
     }
 
     public void SaveAsGesture()
     {
-        var g = new Gesture {gestureName = gestureName};
-        var positions = fingers.Select(t => hand.transform.InverseTransformPoint(t.transform.position)).ToList();
-        g.positionsPerFinger = positions;
-        savedGestures.Add(g);
+        List<Vector3> positions = fingers.Select(t => hand.transform.InverseTransformPoint(t.transform.position)).ToList();
+        savedGestures.Add(new Gesture("New Gesture", positions));
     }
 
     private Gesture Recognize()
     {
-        var discardGesture = false;
-        var minSumDistances = Mathf.Infinity;
-        var bestCandidate = new Gesture();
+        bool discardGesture = false;
+        float minSumDistances = Mathf.Infinity;
+        Gesture bestCandidate = null;
 
         // For each gesture
-        for (var i = 0; i < savedGestures.Count; i++)
+        for (int g = 0; g < savedGestures.Count; g++)
         {
             // If the number of fingers does not match, it returns an error
-            if (fingers.Length != savedGestures[i].positionsPerFinger.Count)
+            if (fingers.Length != savedGestures[g].positionsPerFinger.Count)
                 throw new Exception("Different number of tracked fingers");
 
-            var sumDistances = 0f;
+            float sumDistances = 0f;
 
             // For each finger
-            for (var j = 0; j < fingers.Length; j++)
+            for (int f = 0; f < fingers.Length; f++)
             {
-                var fingerRelativePos = hand.transform.InverseTransformPoint(fingers[j].transform.position);
+                Vector3 fingerRelativePos = hand.transform.InverseTransformPoint(fingers[f].transform.position);
 
                 // If at least one finger does not enter the threshold we discard the gesture
-                if (Vector3.Distance(fingerRelativePos, savedGestures[i].positionsPerFinger[j]) > threshold)
+                if (Vector3.Distance(fingerRelativePos, savedGestures[g].positionsPerFinger[f]) > threshold)
                 {
                     discardGesture = true;
+                    savedGestures[g].time = 0.0f;
                     break;
                 }
 
                 // If all the fingers entered, then we calculate the total of their distances
-                sumDistances += Vector3.Distance(fingerRelativePos, savedGestures[i].positionsPerFinger[j]);
+                sumDistances += Vector3.Distance(fingerRelativePos, savedGestures[g].positionsPerFinger[f]);
             }
 
             // If we have to discard the gesture, we skip it
@@ -120,9 +118,20 @@ public class GestureRecognizer : MonoBehaviour
             // If it is valid and the sum of its distances is less than the existing record, it is replaced because it is a better candidate 
             if (sumDistances < minSumDistances)
             {
+                if (bestCandidate != null)
+                    bestCandidate.time = 0.0f;
+
                 minSumDistances = sumDistances;
-                bestCandidate = savedGestures[i];
+                bestCandidate = savedGestures[g];
             }
+        }
+
+        if (bestCandidate != null)
+        {
+            bestCandidate.time += Time.deltaTime;
+
+            if (bestCandidate.time < delay)
+                bestCandidate = null;
         }
 
         // If we've found something, we'll return it
@@ -138,7 +147,7 @@ public class CustomInspectorGestureRecognizer : Editor
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
-        var gestureRecognizer = (GestureRecognizer) target;
+        GestureRecognizer gestureRecognizer = (GestureRecognizer)target;
         if (!GUILayout.Button("Save current gesture")) return;
         gestureRecognizer.SaveAsGesture();
     }
